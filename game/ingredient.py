@@ -10,8 +10,8 @@ class Ingredient:
         self.x = random.randint(50, WIDTH - 50)
         self.y = -50  # 画面上部から出現
         self.speed = random.randint(3, 6)
-        self.width = 60
-        self.height = 30
+        self.width = 80
+        self.height = 40
         self.color = INGREDIENT_COLORS[self.name]
         self.hit_effect = False
         self.hit_effect_timer = 0
@@ -30,11 +30,13 @@ class Ingredient:
 
     def draw(self, screen, font):
         # 当たり判定の可視化
-        hitbox = pygame.Rect(self.x - self.width // 2, self.y - self.height // 2, self.width, self.height)
+        hitbox = pygame.Rect(self.x - self.width // 2,
+                             self.y - self.height // 2, self.width, self.height)
 
         # エフェクトの描画
         if self.hit_effect:
-            pygame.draw.circle(screen, (255, 255, 255), (self.x, self.y), 30, 2)
+            pygame.draw.circle(screen, (255, 255, 255),
+                               (self.x, self.y), 30, 2)
 
         # 食材の描画
         pygame.draw.rect(screen, self.color, hitbox, border_radius=5)
