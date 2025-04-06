@@ -135,7 +135,7 @@ class GameLoop:
 
         # 食材の生成
         self.spawn_timer += dt
-        if self.spawn_timer > 2.0:  # 2秒に1回生成
+        if self.spawn_timer > 0.5:  # 0.5秒に1回生成（2秒から0.5秒に変更）
             self.spawn_timer = 0
             # 食材の種類をランダムに選択
             ingredient_type = random.choice(list(INGREDIENTS.keys()))
