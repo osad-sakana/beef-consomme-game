@@ -2,6 +2,9 @@ import pygame
 import time
 import random
 import sys
+import os
+import openai
+from dotenv import load_dotenv
 from .constants import (
     WIDTH, HEIGHT, POT_ZONE_Y, INGREDIENTS,
     WHITE, BLACK, BLUE, YELLOW, INGREDIENT_COLORS
@@ -9,6 +12,14 @@ from .constants import (
 from .ingredient import Ingredient
 from .effect import Effect
 from .game_state import GameState
+from .audio_manager import AudioManager
+from .ui_manager import UIManager
+from .recipe_generator import RecipeGenerator
+from .event_handler import EventHandler
+
+# .envファイルから環境変数を読み込む
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 
 class GameLoop:
@@ -59,6 +70,15 @@ class GameLoop:
         self.ingredients_list = []
         self.effects_list = []
         self.spawn_timer = 0
+        self.audio_manager = AudioManager()
+        self.ui_manager = UIManager()
+        self.event_handler = EventHandler(
+            self.game_state,
+            self.ingredients_list,
+            self.effects_list,
+            self.audio_manager,
+            self.ui_manager
+        )
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -86,6 +106,7 @@ class GameLoop:
         for ing in self.ingredients_list:
             if ing.is_in_pot_zone(POT_ZONE_Y) and event.key == ing.key:
                 self.game_state.score += 10 * self.game_state.multiplier
+                self.game_state.add_ingredient(ing.name)  # 食材の取得数をカウント
                 ing.trigger_hit_effect()  # ヒットエフェクトを発動
                 self.effects_list.append(
                     Effect(ing.x, ing.y, INGREDIENT_COLORS[ing.name], "Good!"))
@@ -114,10 +135,11 @@ class GameLoop:
 
         # 食材の生成
         self.spawn_timer += dt
-        if self.spawn_timer > 1.0:
+        if self.spawn_timer > 2.0:  # 2秒に1回生成
             self.spawn_timer = 0
-            self.ingredients_list.append(
-                Ingredient(random.choice(INGREDIENTS)))
+            # 食材の種類をランダムに選択
+            ingredient_type = random.choice(list(INGREDIENTS.keys()))
+            self.ingredients_list.append(Ingredient(ingredient_type))
 
         # 食材の更新
         for ing in self.ingredients_list[:]:
@@ -165,48 +187,86 @@ class GameLoop:
                 f"旨味ブースト中 x{self.game_state.multiplier}", True, YELLOW)
             self.screen.blit(boost_text, (10, 90))
 
+    def _generate_recipe(self):
+        try:
+            ingredients = self.game_state.ingredients_count
+            prompt = f"""
+            返答は全て日本語で行ってください。
+            以下の食材を全て鍋に入れてビーフコンソメを入れます。
+            どんな料理になるかを考えてください。その際に素材の偏りがある場合、それも加味して厳しく考えてください。
+            肉: {ingredients['meat']}個
+            野菜: {ingredients['vegetable']}個
+            ハーブ: {ingredients['herb']}個
+
+            またどんな料理の名前が適切かを考えてください。
+            """
+
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "あなたは料理の専門家です。"},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"レシピ生成エラー: {e}")
+            return "レシピの生成に失敗しました。"
+
     def show_game_over(self):
         # メインBGMを停止
-        try:
-            pygame.mixer.music.stop()
-        except Exception:
-            pass
+        self.audio_manager.stop_bgm()
+
+        # 正常終了の場合のみクリア画面を表示
+        if not self.game_state.is_normal_end:
+            pygame.quit()
+            sys.exit()
 
         # クリアBGMを再生
-        if self.clear_bgm:
-            try:
-                self.clear_bgm.play()
-                # BGMの長さを取得（ミリ秒）
-                bgm_length = self.clear_bgm.get_length() * 1000
-                end_time = time.time() * 1000 + bgm_length
-            except Exception:
-                end_time = time.time() * 1000 + 3000  # 3秒待機
-        else:
-            end_time = time.time() * 1000 + 3000  # 3秒待機
+        self.audio_manager.play_clear_bgm()
 
-        while time.time() * 1000 < end_time:
+        # レシピ生成中の待機画面を表示
+        self.ui_manager.draw_loading_screen()
+        pygame.display.flip()
+
+        # レシピを生成（非同期で実行）
+        recipe = RecipeGenerator.generate_recipe(
+            self.game_state.ingredients_count)
+
+        # レシピ生成中は料理中の画面を表示し続ける
+        while not recipe:
+            self.ui_manager.draw_loading_screen()
+            pygame.display.flip()
+            pygame.time.delay(100)  # CPU使用率を抑えるため少し待機
+            recipe = RecipeGenerator.generate_recipe(
+                self.game_state.ingredients_count)
+
+        # ゲームオーバー画面の表示
+        while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:  # ESCキーで終了
+                        pygame.quit()
+                        sys.exit()
 
-            self.screen.fill(BLACK)
-            final_text = self.font.render(
-                f"ゲーム終了! 最終スコア: {self.game_state.score}", True, WHITE)
-            self.screen.blit(
-                final_text, (WIDTH // 2 - final_text.get_width() // 2, HEIGHT // 2))
-            pygame.display.flip()
+            self.ui_manager.draw_game_over(self.game_state, recipe)
 
     def run(self):
-        try:
-            pygame.mixer.music.play(-1)  # BGMをループ再生開始
-        except Exception:
-            pass
+        self.audio_manager.play_bgm()
+
         while self.game_state.running:
             dt = self.clock.tick(60) / 1000
-            self.handle_events()
+            self.event_handler.handle_events()
             self.update(dt)
-            self.draw()
+            self.ui_manager.draw_game_screen(
+                self.ingredients_list,
+                self.effects_list,
+                self.game_state
+            )
 
         self.show_game_over()
         pygame.quit()

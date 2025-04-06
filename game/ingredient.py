@@ -1,52 +1,49 @@
-import random
 import pygame
-from .constants import WIDTH, INGREDIENT_COLORS
+import random
+from .constants import WIDTH, INGREDIENTS
 
 
 class Ingredient:
-    def __init__(self, ingredient):
-        self.name = ingredient["name"]
-        self.key = ingredient["key"]
-        self.x = random.randint(50, WIDTH - 50)
-        self.y = -50  # 画面上部から出現
-        self.speed = random.randint(3, 6)
-        self.width = 80
-        self.height = 40
-        self.color = INGREDIENT_COLORS[self.name]
-        self.hit_effect = False
-        self.hit_effect_timer = 0
+    def __init__(self, ingredient_type):
+        self.type = ingredient_type
+        self.name = INGREDIENTS[ingredient_type]['name']
+        self.color = INGREDIENTS[ingredient_type]['color']
+        self.key = INGREDIENTS[ingredient_type]['key']
+        self.speed = 3  # 固定の速度
+        self.score = 100  # 固定のスコア
+        self.y = 0
+
+        # キーに基づいてゾーンを決定
+        key_to_zone = {
+            100: 0,  # d: 肉、チーズ、魚
+            102: WIDTH // 4,  # f: 野菜、果物
+            106: WIDTH // 4 * 2,  # j: ハーブ、スパイス
+            107: WIDTH // 4 * 3  # k: スープ
+        }
+        zone_x = key_to_zone[self.key]
+        zone_width = WIDTH // 4
+        # ゾーン内のランダムな位置に配置
+        self.x = zone_x + random.randint(20, zone_width - 20)
 
     def update(self, slowdown_active):
         if slowdown_active:
-            self.y += self.speed / 2
+            self.y += self.speed * 0.5
         else:
             self.y += self.speed
 
-        if self.hit_effect:
-            self.hit_effect_timer += 1
-            if self.hit_effect_timer > 30:  # エフェクトは30フレーム表示
-                self.hit_effect = False
-                self.hit_effect_timer = 0
-
     def draw(self, screen, font):
-        # 当たり判定の可視化
-        hitbox = pygame.Rect(self.x - self.width // 2,
-                             self.y - self.height // 2, self.width, self.height)
+        # 食材の円を描画
+        pygame.draw.circle(screen, (50, 50, 50),
+                           (int(self.x), int(self.y)), 20)
 
-        # エフェクトの描画
-        if self.hit_effect:
-            pygame.draw.circle(screen, (255, 255, 255),
-                               (self.x, self.y), 30, 2)
-
-        # 食材の描画
-        pygame.draw.rect(screen, self.color, hitbox, border_radius=5)
-        text = font.render(self.name, True, (255, 255, 255))
+        # 食材名を色付きで描画
+        text = font.render(self.name, True, self.color)
         text_rect = text.get_rect(center=(self.x, self.y))
         screen.blit(text, text_rect)
 
     def is_in_pot_zone(self, pot_zone_y):
-        return pot_zone_y - 20 < self.y < pot_zone_y + 20
+        return self.y >= pot_zone_y - 20 and self.y <= pot_zone_y + 20
 
     def trigger_hit_effect(self):
         self.hit_effect = True
-        self.hit_effect_timer = 0
+        self.hit_timer = 0

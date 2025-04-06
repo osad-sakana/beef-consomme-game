@@ -1,5 +1,5 @@
 import time
-from .constants import GAME_DURATION, BOOST_DURATION, SLOWDOWN_DURATION
+from .constants import GAME_DURATION, BOOST_DURATION, SLOWDOWN_DURATION, INGREDIENTS
 
 
 class GameState:
@@ -11,6 +11,9 @@ class GameState:
         self.slowdown_active = False
         self.slowdown_end_time = 0
         self.running = True
+        self.ingredients_count = {
+            ing_type: 0 for ing_type in INGREDIENTS.keys()}
+        self.is_normal_end = False
 
     def update(self, current_time):
         # 特殊効果の終了処理
@@ -23,6 +26,7 @@ class GameState:
         elapsed_time = current_time - self.start_time
         if elapsed_time >= GAME_DURATION:
             self.running = False
+            self.is_normal_end = True
 
     def activate_boost(self, current_time):
         self.multiplier = 2
@@ -34,3 +38,7 @@ class GameState:
 
     def get_remaining_time(self):
         return max(0, GAME_DURATION - (time.time() - self.start_time))
+
+    def add_ingredient(self, ingredient_type):
+        if ingredient_type in self.ingredients_count:
+            self.ingredients_count[ingredient_type] += 1
