@@ -113,10 +113,7 @@ class GameLoop:
                 # 食材ごとに異なるSEを再生
                 sound_name = f"get_{ing.name.lower()}"
                 if sound_name in self.sounds:
-                    try:
-                        self.sounds[sound_name].play()
-                    except Exception:
-                        pass
+                    self.sounds[sound_name].play()
                 self.ingredients_list.remove(ing)
                 matched = True
                 break
@@ -124,10 +121,6 @@ class GameLoop:
         if not matched:
             self.effects_list.append(
                 Effect(WIDTH // 2, POT_ZONE_Y, (255, 0, 0), "Miss!"))
-            try:
-                self.sounds["fall"].play()  # ミス時のSEを再生
-            except Exception:
-                pass
 
     def update(self, dt):
         current_time = time.time()

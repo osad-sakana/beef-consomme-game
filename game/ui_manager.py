@@ -57,7 +57,7 @@ class UIManager:
             # キーの表示
             key_text = self.small_font.render(key, True, (150, 150, 150))
             self.screen.blit(key_text, (x + zone_width //
-                             2 - key_text.get_width() // 2, 10))
+                             2 - key_text.get_width() // 2, HEIGHT - 30))
 
         # 鍋ゾーンの描画
         pygame.draw.rect(self.screen, BLUE, (0, POT_ZONE_Y - 20, WIDTH, 40), 2)
