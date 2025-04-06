@@ -9,7 +9,7 @@ class Ingredient:
         self.name = INGREDIENTS[ingredient_type]['name']
         self.color = INGREDIENTS[ingredient_type]['color']
         self.key = INGREDIENTS[ingredient_type]['key']
-        self.speed = 3  # 固定の速度
+        self.speed = random.uniform(2, 5)  # 2から5の間でランダムな速度
         self.score = 100  # 固定のスコア
         self.y = 0
 
@@ -42,7 +42,7 @@ class Ingredient:
         screen.blit(text, text_rect)
 
     def is_in_pot_zone(self, pot_zone_y):
-        return self.y >= pot_zone_y - 20 and self.y <= pot_zone_y + 20
+        return self.y >= pot_zone_y - 40 and self.y <= pot_zone_y + 40
 
     def trigger_hit_effect(self):
         self.hit_effect = True
