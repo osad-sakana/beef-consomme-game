@@ -130,7 +130,7 @@ class UIManager:
         final_text = self.font.render(
             f"ゲーム終了! 最終スコア: {game_state.score}", True, WHITE)
         self.screen.blit(
-            final_text, (WIDTH // 2 - final_text.get_width() // 2, HEIGHT // 2 - 100))
+            final_text, (WIDTH // 2 - final_text.get_width() // 2, HEIGHT // 4))
 
         # レシピの表示（折り返し処理）
         recipe_lines = []
@@ -139,7 +139,7 @@ class UIManager:
             recipe_lines.extend(wrapped_lines)
 
         # レシピの表示位置を調整
-        start_y = HEIGHT // 2 + 50
+        start_y = HEIGHT // 3
         max_lines = 10  # 最大表示行数
         if len(recipe_lines) > max_lines:
             recipe_lines = recipe_lines[:max_lines] + ["..."]  # 行数が多すぎる場合は省略
@@ -151,6 +151,6 @@ class UIManager:
         # 終了メッセージの表示
         exit_text = self.small_font.render("終了するにはウィンドウを閉じてください", True, WHITE)
         self.screen.blit(
-            exit_text, (WIDTH // 2 - exit_text.get_width() // 2, HEIGHT - 50))
+            exit_text, (WIDTH // 2 - exit_text.get_width() // 2, HEIGHT - 100))
 
         pygame.display.flip()

@@ -58,4 +58,3 @@ class EventHandler:
         if not matched:
             self.effects_list.append(
                 Effect(WIDTH // 2, POT_ZONE_Y, (255, 0, 0), "Miss!"))
-            self.audio_manager.play_sound("fall")
